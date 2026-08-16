@@ -22,12 +22,18 @@ program
   .option('--port <port>', 'AMT port (env: AMT_PORT, default: 16992)')
   .option('--user <user>', 'AMT username (env: AMT_USER, default: admin)')
   .option('--pass <pass>', 'AMT password (env: AMT_PASS)')
+  .option('--retries <num>', 'Max retries on connection failure (env: AMT_RETRIES, default: 3)')
+  .option('--retry-delay <ms>', 'Delay between retries in ms (env: AMT_RETRY_DELAY, default: 2000)')
+  .option('--timeout <ms>', 'Socket timeout in ms (env: AMT_TIMEOUT, default: 5000)')
   .addHelpText('after', `
 Environment variables:
-  AMT_HOST   AMT host      (overridden by --host)
-  AMT_PORT   AMT port      (overridden by --port)
-  AMT_USER   AMT username  (overridden by --user)
-  AMT_PASS   AMT password  (overridden by --pass)
+  AMT_HOST         AMT host              (overridden by --host)
+  AMT_PORT         AMT port              (overridden by --port)
+  AMT_USER         AMT username          (overridden by --user)
+  AMT_PASS         AMT password          (overridden by --pass)
+  AMT_RETRIES      Max retries           (overridden by --retries)
+  AMT_RETRY_DELAY  Delay in ms           (overridden by --retry-delay)
+  AMT_TIMEOUT      Socket timeout in ms  (overridden by --timeout)
 
 Examples:
   amt-util status
