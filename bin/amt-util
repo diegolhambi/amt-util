@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+import { Command } from 'commander';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { configure } from '../lib/client.js';
+import { register as status } from '../lib/commands/status.js';
+import { register as power } from '../lib/commands/power.js';
+import { register as hwinfo } from '../lib/commands/hwinfo.js';
+import { register as waitOs } from '../lib/commands/wait-os.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const { version } = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
+
+const program = new Command();
+
+program
+  .name('amt-util')
+  .description('Intel AMT control utility')
+  .version(version, '--version')
+  .option('--host <host>', 'AMT host (env: AMT_HOST)')
+  .option('--port <port>', 'AMT port (env: AMT_PORT, default: 16992)')
+  .option('--user <user>', 'AMT username (env: AMT_USER, default: admin)')
+  .option('--pass <pass>', 'AMT password (env: AMT_PASS)')
+  .addHelpText('after', `
+Environment variables:
+  AMT_HOST   AMT host      (overridden by --host)
+  AMT_PORT   AMT port      (overridden by --port)
+  AMT_USER   AMT username  (overridden by --user)
+  AMT_PASS   AMT password  (overridden by --pass)
+
+Examples:
+  amt-util status
+  amt-util status --quiet
+  amt-util power shutdown
+  amt-util power reset --boot cd
+  amt-util hwinfo disk
+  amt-util hwinfo --json
+  amt-util wait-os && amt-util hwinfo
+  AMT_HOST=10.0.0.5 amt-util status`);
+
+program.hook('preAction', () => configure(program.opts()));
+
+[status, power, hwinfo, waitOs].forEach(register => register(program));
+
+program.parseAsync().catch(({ message }) => {
+  process.stderr.write(`amt-util: ${message}\n`);
+  process.exit(1);
+});
