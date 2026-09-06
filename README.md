@@ -3,7 +3,7 @@
 > *Simple, Unix-style CLI tool for Intel Active Management Technology (AMT) remote power control and hardware inventory.*
 
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](./LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-green.svg)](https://nodejs.org)
+[![Bun](https://img.shields.io/badge/Bun-%3E%3D1.0.0-black.svg)](https://bun.sh)
 
 
 ## Highlights
@@ -85,13 +85,13 @@ amt-util power on && amt-util wait-os -q && amt-util hwinfo
 ```bash
 git clone https://github.com/your-username/amt-control.git
 cd amt-control
-npm install
-npm link
+bun install
+bun link
 ```
 
 ### Requirements
 
-- **Node.js**: `>= 18.0.0` (Native ECMAScript Modules)
+- **Bun**: `>= 1.0.0`
 - **Intel AMT Device**: WebUI accessible on port `16992` (HTTP) or `16993` (HTTPS)
 
 

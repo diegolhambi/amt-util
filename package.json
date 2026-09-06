@@ -7,7 +7,8 @@
     "amt-util": "./bin/amt-util"
   },
   "scripts": {
-    "link": "npm link"
+    "start": "bun ./bin/amt-util",
+    "link": "bun link"
   },
   "keywords": ["intel", "amt", "remote-management", "cli"],
   "license": "ISC",
