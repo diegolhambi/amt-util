@@ -1,16 +1,11 @@
 #!/usr/bin/env bun
 import { Command } from 'commander';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { version } from '../package.json';
 import { configure } from '../lib/client.js';
 import { register as status } from '../lib/commands/status.js';
 import { register as power } from '../lib/commands/power.js';
 import { register as hwinfo } from '../lib/commands/hwinfo.js';
 import { register as waitOs } from '../lib/commands/wait-os.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const { version } = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
 
 const program = new Command();
 
