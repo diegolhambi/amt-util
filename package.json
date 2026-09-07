@@ -12,7 +12,5 @@
   },
   "keywords": ["intel", "amt", "remote-management", "cli"],
   "license": "ISC",
-  "dependencies": {
-    "commander": "^14.0.0"
-  }
+  "dependencies": {}
 }

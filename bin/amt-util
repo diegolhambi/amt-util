@@ -1,26 +1,30 @@
 #!/usr/bin/env bun
-import { Command } from 'commander';
+import { parseArgs } from 'node:util';
 import { version } from '../package.json';
 import { configure } from '../lib/client.js';
-import { register as status } from '../lib/commands/status.js';
-import { register as power } from '../lib/commands/power.js';
-import { register as hwinfo } from '../lib/commands/hwinfo.js';
-import { register as waitOs } from '../lib/commands/wait-os.js';
 
-const program = new Command();
+const HELP_MAIN = `Usage: amt-util [options] [command]
 
-program
-  .name('amt-util')
-  .description('Intel AMT control utility')
-  .version(version, '--version')
-  .option('--host <host>', 'AMT host (env: AMT_HOST)')
-  .option('--port <port>', 'AMT port (env: AMT_PORT, default: 16992)')
-  .option('--user <user>', 'AMT username (env: AMT_USER, default: admin)')
-  .option('--pass <pass>', 'AMT password (env: AMT_PASS)')
-  .option('--retries <num>', 'Max retries on connection failure (env: AMT_RETRIES, default: 3)')
-  .option('--retry-delay <ms>', 'Delay between retries in ms (env: AMT_RETRY_DELAY, default: 2000)')
-  .option('--timeout <ms>', 'Socket timeout in ms (env: AMT_TIMEOUT, default: 5000)')
-  .addHelpText('after', `
+Intel AMT control utility
+
+Options:
+  -v, --version                output the version number
+  --host <host>                AMT host (env: AMT_HOST)
+  --port <port>                AMT port (env: AMT_PORT, default: 16992)
+  --user <user>                AMT username (env: AMT_USER, default: admin)
+  --pass <pass>                AMT password (env: AMT_PASS)
+  --retries <num>              Max retries on connection failure (env: AMT_RETRIES, default: 3)
+  --retry-delay <ms>           Delay between retries in ms (env: AMT_RETRY_DELAY, default: 2000)
+  --timeout <ms>               Socket timeout in ms (env: AMT_TIMEOUT, default: 5000)
+  -h, --help                   display help for command
+
+Commands:
+  status [options]             Show system power state and basic info
+  power [options] <action>     Send a power control command to the machine
+  hwinfo [options] [category]  Show hardware information from the AMT WebUI
+  wait-os [options]            Wait until the OS is fully booted (MEI driver active)
+  help [command]               display help for command
+
 Environment variables:
   AMT_HOST         AMT host              (overridden by --host)
   AMT_PORT         AMT port              (overridden by --port)
@@ -38,13 +42,142 @@ Examples:
   amt-util hwinfo disk
   amt-util hwinfo --json
   amt-util wait-os && amt-util hwinfo
-  AMT_HOST=10.0.0.5 amt-util status`);
+  AMT_HOST=10.0.0.5 amt-util status
+`;
 
-program.hook('preAction', () => configure(program.opts()));
+const HELP_STATUS = `Usage: amt-util status [options]
 
-[status, power, hwinfo, waitOs].forEach(register => register(program));
+Show system power state and basic info
 
-program.parseAsync().catch(({ message }) => {
-  process.stderr.write(`amt-util: ${message}\n`);
+Options:
+  -q, --quiet  Print only the power state value (On/Off)
+  --json       Output as JSON
+  -h, --help   display help for command
+`;
+
+const HELP_POWER = `Usage: amt-util power [options] <action>
+
+Send a power control command to the machine
+
+Options:
+  --boot <option>  Boot device for cycle/reset/on: normal|hdd|cd (default: "normal")
+  -h, --help       display help for command
+
+Actions:
+  on        Turn power on (only when off)
+  off       Force power off
+  cycle     Power cycle (off then on)
+  reset     Hard reset
+  shutdown  Graceful shutdown (requires Intel MEI driver on the OS)
+`;
+
+const HELP_HWINFO = `Usage: amt-util hwinfo [options] [category]
+
+Show hardware information from the AMT WebUI
+
+Options:
+  --json      Output as JSON
+  -h, --help  display help for command
+
+Categories (default: all):
+  system      Platform, Baseboard and BIOS
+  processor   CPU information
+  memory      RAM modules
+  disk        Storage devices
+`;
+
+const HELP_WAIT_OS = `Usage: amt-util wait-os [options]
+
+Wait until the OS is fully booted (MEI driver active)
+
+Options:
+  --interval <seconds>  Polling interval (default: 10)
+  --timeout <seconds>   Max wait time (default: 300)
+  -q, --quiet           Suppress progress output
+  -h, --help            display help for command
+
+Progress is written to stderr; "ready" is written to stdout on success.
+Allows composition: amt-util wait-os && amt-util hwinfo
+`;
+
+try {
+  const { values, positionals } = parseArgs({
+    args: process.argv.slice(2),
+    options: {
+      help: { type: 'boolean', short: 'h' },
+      version: { type: 'boolean', short: 'v' },
+      host: { type: 'string' },
+      port: { type: 'string' },
+      user: { type: 'string' },
+      pass: { type: 'string' },
+      retries: { type: 'string' },
+      'retry-delay': { type: 'string' },
+      timeout: { type: 'string' },
+      quiet: { type: 'boolean', short: 'q' },
+      json: { type: 'boolean' },
+      boot: { type: 'string' },
+      interval: { type: 'string' },
+    },
+    allowPositionals: true,
+    strict: false,
+  });
+
+  if (values.version) {
+    process.stdout.write(`${version}\n`);
+    process.exit(0);
+  }
+
+  configure({
+    host: values.host,
+    port: values.port,
+    user: values.user,
+    pass: values.pass,
+    retries: values.retries,
+    retryDelay: values['retry-delay'],
+    timeout: values.timeout,
+  });
+
+  const cmd = positionals[0];
+
+  if (!cmd || (values.help && positionals.length === 0) || (cmd === 'help' && positionals.length === 1)) {
+    process.stdout.write(HELP_MAIN);
+    process.exit(0);
+  }
+
+  const subHelp = values.help || (cmd === 'help' && positionals.length > 1);
+  const actualCmd = cmd === 'help' ? positionals[1] : cmd;
+
+  if (actualCmd === 'status') {
+    if (subHelp) { process.stdout.write(HELP_STATUS); process.exit(0); }
+    const { run } = await import('../lib/commands/status.js');
+    await run({ quiet: values.quiet, json: values.json });
+  } else if (actualCmd === 'power') {
+    if (subHelp) { process.stdout.write(HELP_POWER); process.exit(0); }
+    const action = cmd === 'help' ? positionals[2] : positionals[1];
+    if (!action) {
+      process.stderr.write('amt-util: missing required argument <action>\n\n' + HELP_POWER);
+      process.exit(1);
+    }
+    const { run } = await import('../lib/commands/power.js');
+    await run(action, { boot: values.boot ?? 'normal' });
+  } else if (actualCmd === 'hwinfo') {
+    if (subHelp) { process.stdout.write(HELP_HWINFO); process.exit(0); }
+    const category = cmd === 'help' ? positionals[2] : positionals[1];
+    const { run } = await import('../lib/commands/hwinfo.js');
+    await run(category, { json: values.json });
+  } else if (actualCmd === 'wait-os') {
+    if (subHelp) { process.stdout.write(HELP_WAIT_OS); process.exit(0); }
+    const { run } = await import('../lib/commands/wait-os.js');
+    await run({
+      interval: values.interval ? Number(values.interval) : 10,
+      timeout: values.timeout ? Number(values.timeout) : 300,
+      quiet: values.quiet,
+    });
+  } else {
+    process.stderr.write(`amt-util: unknown command "${actualCmd}"\n\n` + HELP_MAIN);
+    process.exit(1);
+  }
+} catch (err) {
+  process.stderr.write(`amt-util: ${err.message}\n`);
   process.exit(1);
-});
+}

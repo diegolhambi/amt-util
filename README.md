@@ -14,6 +14,7 @@
 - **OS Boot Detection (`wait-os`)**: Block execution until the OS and Intel MEI driver finish booting.
 - **Unix Philosophy**: Composable, pipe-friendly (`grep`, `awk`, `jq`), with `--quiet` and `--json` support.
 - **Direct WebUI Integration**: Works seamlessly when AMT WS-Management (WS-MAN / SOAP) is disabled, broken, or deprecated.
+- **Zero Dependencies & Instant Startup**: Built purely on native Bun APIs with session nonce caching for ultra-fast execution.
 
 
 ## Overview
@@ -83,9 +84,8 @@ amt-util power on && amt-util wait-os -q && amt-util hwinfo
 ## Installation
 
 ```bash
-git clone https://github.com/your-username/amt-control.git
-cd amt-control
-bun install
+git clone https://github.com/diegolhambi/amt-util.git
+cd amt-util
 bun link
 ```
 
